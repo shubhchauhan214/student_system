@@ -35,6 +35,23 @@ services:
       REDIS_HOST: ${REDIS_HOST}
     volumes:
       - .:/app
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: student_rabbitmq
+    ports:
+    - "5672:5672"
+    - "15672:15672"
+    restart: always
+  worker:
+   build: .
+   container_name: student_worker
+   command: celery -A app.celery_worker worker --loglevel=info
+   depends_on:
+    - rabbitmq
+    - db
+   environment:
+    DATABASE_URL: ${DATABASE_URL}
+    CELERY_BROKER_URL: amqp://guest:guest@rabbitmq:5672//
 
 volumes:
   postgres_data:
