@@ -12,7 +12,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/students", tags=["Students"])
 
-# CREATE
 @router.post("/", response_model=schemas.StudentResponse)
 def create_student(student: schemas.StudentCreate, db: Session = Depends(get_db)):
 
@@ -31,7 +30,6 @@ def create_student(student: schemas.StudentCreate, db: Session = Depends(get_db)
             "email": new_student.email
         })
     )
-    logger.info(f"Individual cache created for student:{new_student.id}")
 
     # 2️⃣ Smart add into list cache (if exists)
     cached_list = redis_client.get("students_list")
@@ -46,9 +44,10 @@ def create_student(student: schemas.StudentCreate, db: Session = Depends(get_db)
         })
 
         redis_client.setex("students_list", 60, json.dumps(students_list))
-        logger.info("SMART CACHE ADD: student appended to students_list")
 
-        student_created_task.delay(new_student.id)
+    #  ALWAYS SEND TASK (outside if block)
+    student_created_task.delay(new_student.id)
+
     logger.info(f"Task sent to RabbitMQ for student:{new_student.id}")
 
     return new_student
